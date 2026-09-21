@@ -19,15 +19,15 @@
     </section>
 
     <section class="panel">
-      <nav class="tabs"><button class="active" data-tab="employees">الموظفون</button><button data-tab="leaves">الإجازات</button><button data-tab="permissions">الاستئذان</button></nav>
+      <nav class="tabs"><button class="active" data-tab="employees">الموظفون</button><button data-tab="leaves">الإجازات</button><button data-tab="permissions">الاستئذان</button><button data-tab="settings">الإعدادات</button></nav>
 
       <div class="tab active" id="employees">
-        <section class="form-card"><h2>＋ إضافة موظف</h2><p>يبدأ الموظف برصيد 21 يوم إجازة و4 ساعات استئذان شهريًا.</p>
+        <section class="form-card"><h2>＋ إضافة موظف</h2>
           <form id="employeeForm">
             <label>كود الموظف<input name="code" required placeholder="مثال: EMP-001"></label>
             <label>اسم الموظف<input name="name" required placeholder="الاسم الكامل"></label>
-            <label>الإدارة<select name="department" required><option value="">اختر الإدارة</option><option>الإدارة العليا</option><option>المالية</option><option>الموارد البشرية</option><option>الحركة والتشغيل</option><option>المستودع والمخازن</option><option>إدارة المشتريات</option></select></label>
-            <label>الفرع<select name="branch" required><option value="">اختر الفرع</option><option>الرئيسي</option><option>حرض</option><option>ستون بور</option></select></label>
+            <label>الإدارة<select id="departmentSelect" name="department" required><option value="">اختر الإدارة</option></select></label>
+            <label>الفرع<select id="branchSelect" name="branch" required><option value="">اختر الفرع</option></select></label>
             <button type="submit" class="primary">إضافة الموظف</button>
           </form>
         </section>
@@ -44,6 +44,11 @@
         <section class="form-card"><h2>🕐 تسجيل استئذان</h2><p>الحد الشهري 4 ساعات لكل موظف ويتجدد تلقائيًا.</p>
           <form id="permissionForm"><label>الموظف<select class="employee-picker" name="employeeId" required></select></label><div class="split"><label>الساعات<input name="hours" type="number" min="0" max="4" value="1" required></label><label>الدقائق<input name="minutes" type="number" min="0" max="59" value="0" required></label></div><label>التاريخ<input class="today" name="permissionDate" type="date" required></label><label>ملاحظة (اختياري)<input name="note" placeholder="سبب الاستئذان"></label><button class="primary">تسجيل الاستئذان</button></form>
         </section><section class="data-card"><div class="title"><h2>رصيد الاستئذان الشهري</h2><span>يتجدد مع بداية كل شهر</span></div><div class="balances" id="permissionBalances"></div></section>
+      </div>
+
+      <div class="tab settings-grid" id="settings">
+        <section class="settings-card"><h2>⚙️ الإدارات</h2><p>أضف الخيارات التي تظهر عند تسجيل الموظف.</p><form class="setting-form" data-type="department"><input name="name" required placeholder="اسم الإدارة"><button class="primary">إضافة</button></form><div class="setting-list" id="departmentList"></div></section>
+        <section class="settings-card"><h2>⚙️ الفروع</h2><p>أضف الخيارات التي تظهر عند تسجيل الموظف.</p><form class="setting-form" data-type="branch"><input name="name" required placeholder="اسم الفرع"><button class="primary">إضافة</button></form><div class="setting-list" id="branchList"></div></section>
       </div>
     </section>
     <footer>مجموعة المحيميد القابضة</footer>
