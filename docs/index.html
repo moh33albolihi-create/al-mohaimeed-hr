@@ -10,7 +10,7 @@
 <body>
   <header class="topbar"><div class="logo">م</div><div><b>مجموعة المحيميد القابضة</b><span>نظام إدارة الموظفين</span></div><time id="headerDate"></time></header>
   <main class="wrap">
-    <section class="hero"><div><small>لوحة الموارد البشرية</small><h1>الموظفون والأرصدة</h1><p>إدارة الإجازات السنوية والاستئذانات الشهرية من مكان واحد.</p></div><button id="refresh" class="ghost">↻ تحديث</button></section>
+    <section class="hero"><div><h1>الموظفون والأرصدة</h1><p>إدارة الإجازات السنوية والاستئذانات الشهرية من مكان واحد.</p></div><button id="refresh" class="ghost">↻ تحديث</button></section>
     <div id="notice" class="notice" hidden></div>
     <section class="stats">
       <article><span>👥</span><div><small>إجمالي الموظفين</small><strong id="employeeCount">0</strong></div></article>
@@ -36,13 +36,13 @@
 
       <div class="tab" id="leaves">
         <section class="form-card"><h2>📅 تسجيل إجازة</h2><p>يُخصم عدد الأيام مباشرة من رصيد الموظف السنوي.</p>
-          <form id="leaveForm"><label>الموظف<select class="employee-picker" name="employeeId" required></select></label><label>نوع الإجازة<select name="type" required><option value="عادية">إجازة عادية</option><option value="طارئة">إجازة طارئة</option></select></label><label>عدد الأيام<input name="days" type="number" min="0.5" max="21" step="0.5" required></label><label>تاريخ البداية<input class="today" name="startDate" type="date" required></label><label>ملاحظة (اختياري)<input name="note" placeholder="سبب أو ملاحظة"></label><button class="primary">تسجيل الإجازة</button></form>
+          <form id="leaveForm"><label>الموظف<select class="employee-picker" name="employeeId" required></select></label><label>الموظف البديل<select class="replacement-picker" name="replacementEmployeeId" required></select></label><label>نوع الإجازة<select name="type" required><option value="عادية">إجازة عادية</option><option value="طارئة">إجازة طارئة</option></select></label><label>عدد الأيام<input name="days" type="number" min="0.5" max="21" step="0.5" required></label><label>تاريخ البداية<input class="today" name="startDate" type="date" required></label><label>ملاحظة (اختياري)<input name="note" placeholder="سبب أو ملاحظة"></label><button class="primary">تسجيل الإجازة</button></form>
         </section><section class="data-card"><div class="title"><h2>أرصدة الإجازات</h2><span>تتجدد سنويًا</span></div><div class="balances" id="leaveBalances"></div></section>
       </div>
 
       <div class="tab" id="permissions">
         <section class="form-card"><h2>🕐 تسجيل استئذان</h2><p>الحد الشهري 4 ساعات لكل موظف ويتجدد تلقائيًا.</p>
-          <form id="permissionForm"><label>الموظف<select class="employee-picker" name="employeeId" required></select></label><div class="split"><label>الساعات<input name="hours" type="number" min="0" max="4" value="1" required></label><label>الدقائق<input name="minutes" type="number" min="0" max="59" value="0" required></label></div><label>التاريخ<input class="today" name="permissionDate" type="date" required></label><label>ملاحظة (اختياري)<input name="note" placeholder="سبب الاستئذان"></label><button class="primary">تسجيل الاستئذان</button></form>
+          <form id="permissionForm"><label>الموظف<select class="employee-picker" name="employeeId" required></select></label><label>الموظف البديل<select class="replacement-picker" name="replacementEmployeeId" required></select></label><div class="split"><label>الساعات<input name="hours" type="number" min="0" max="4" value="1" required></label><label>الدقائق<input name="minutes" type="number" min="0" max="59" value="0" required></label></div><label>التاريخ<input class="today" name="permissionDate" type="date" required></label><label>ملاحظة (اختياري)<input name="note" placeholder="سبب الاستئذان"></label><button class="primary">تسجيل الاستئذان</button></form>
         </section><section class="data-card"><div class="title"><h2>رصيد الاستئذان الشهري</h2><span>يتجدد مع بداية كل شهر</span></div><div class="balances" id="permissionBalances"></div></section>
       </div>
 
