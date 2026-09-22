@@ -11,6 +11,7 @@ function render(){
   $("#employeeCount").textContent=employees.length;$("#leaveTotal").textContent=employees.reduce((n,e)=>n+e.leaveUsed,0);$("#permissionTotal").textContent=hours(employees.reduce((n,e)=>n+e.permissionUsed,0));$("#employeesLabel").textContent=`${employees.length} موظف مسجل`;
   $("#employeesRows").innerHTML=employees.map(e=>`<tr><td><b>${esc(e.name)}</b><small>${esc(e.code)}</small></td><td>${esc(e.department)}</td><td>${esc(e.branch)}</td><td><b>${e.leaveRemaining}</b> / 21 يوم</td><td><b>${hours(e.permissionRemaining)}</b> متبقي</td></tr>`).join("");$("#employeesEmpty").hidden=employees.length>0;
   const opts='<option value="">اختر الموظف</option>'+employees.map(e=>`<option value="${e.id}">${esc(e.name)} — ${esc(e.code)}</option>`).join("");$$('.employee-picker').forEach(x=>x.innerHTML=opts);
+  const replacementOpts='<option value="">اختر الموظف البديل</option>'+employees.map(e=>`<option value="${e.id}">${esc(e.name)} — ${esc(e.code)}</option>`).join("");$$('.replacement-picker').forEach(x=>x.innerHTML=replacementOpts);
   $('#departmentSelect').innerHTML='<option value="">اختر الإدارة</option>'+departments.map(x=>`<option>${esc(x.name)}</option>`).join('');$('#branchSelect').innerHTML='<option value="">اختر الفرع</option>'+branches.map(x=>`<option>${esc(x.name)}</option>`).join('');
   $('#departmentList').innerHTML=settingItems(departments,'department');$('#branchList').innerHTML=settingItems(branches,'branch');
   $("#leaveBalances").innerHTML=cards("leave");$("#permissionBalances").innerHTML=cards("permission");
@@ -24,8 +25,8 @@ async function removeSetting(type,id){try{await request('/settings',{method:'DEL
 $$('.tabs button').forEach(b=>b.onclick=()=>{$$('.tabs button,.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('#'+b.dataset.tab).classList.add('active')});
 $('#refresh').onclick=load;$$('.today').forEach(x=>x.value=today);$('#headerDate').textContent=new Intl.DateTimeFormat('ar-SA',{dateStyle:'long'}).format(new Date());
 $('#employeeForm').onsubmit=e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.currentTarget));submit(e.currentTarget,'/employees',d)};
-$('#leaveForm').onsubmit=e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.currentTarget));submit(e.currentTarget,'/leaves',{...d,employeeId:Number(d.employeeId),days:Number(d.days)})};
-$('#permissionForm').onsubmit=e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.currentTarget));submit(e.currentTarget,'/permissions',{employeeId:Number(d.employeeId),minutes:Number(d.hours)*60+Number(d.minutes),permissionDate:d.permissionDate,note:d.note})};
+$('#leaveForm').onsubmit=e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.currentTarget));submit(e.currentTarget,'/leaves',{...d,employeeId:Number(d.employeeId),replacementEmployeeId:Number(d.replacementEmployeeId),days:Number(d.days)})};
+$('#permissionForm').onsubmit=e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.currentTarget));submit(e.currentTarget,'/permissions',{employeeId:Number(d.employeeId),replacementEmployeeId:Number(d.replacementEmployeeId),minutes:Number(d.hours)*60+Number(d.minutes),permissionDate:d.permissionDate,note:d.note})};
 $$('.setting-form').forEach(form=>form.onsubmit=e=>{e.preventDefault();const d=new FormData(form);submit(form,'/settings',{type:form.dataset.type,name:d.get('name')})});
 document.addEventListener('click',e=>{const button=e.target.closest('.delete-setting');if(button)removeSetting(button.dataset.type,Number(button.dataset.id))});
 load();
