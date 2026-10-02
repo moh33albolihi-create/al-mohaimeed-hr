@@ -60,14 +60,14 @@ export default function HRApp(){
 }
 
 function AuthScreen(){
-  const [signup,setSignup]=useState(false); const [busy,setBusy]=useState(false); const [notice,setNotice]=useState("");
+  const [busy,setBusy]=useState(false); const [notice,setNotice]=useState("");
   async function submit(e:FormEvent<HTMLFormElement>){
     e.preventDefault(); setBusy(true); setNotice(""); const d=new FormData(e.currentTarget); const email=String(d.get("email")||"").trim(); const password=String(d.get("password")||"");
-    const result=signup?await supabase.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin}}):await supabase.auth.signInWithPassword({email,password});
-    if(result.error) setNotice(result.error.message); else if(signup&&!result.data.session) setNotice("تم إنشاء الحساب. افتح رسالة التأكيد في بريدك ثم سجّل الدخول.");
+    const result=await supabase.auth.signInWithPassword({email,password});
+    if(result.error) setNotice("تعذر تسجيل الدخول. تأكد من البريد وكلمة المرور أو تواصل مع مدير النظام.");
     setBusy(false);
   }
-  return <main className="access-page auth-bg"><section className="access-card login-card"><div className="brand-mark login-mark">م</div><h1>مجموعة المحيميد القابضة</h1><p>{signup?"أنشئ حسابك بالبريد المسجل لدى الموارد البشرية.":"سجّل الدخول للوصول إلى نظام الموظفين."}</p>{notice&&<div className="notice">{notice}</div>}<form onSubmit={submit}><Field label="البريد الإلكتروني"><Input name="email" type="email" required autoComplete="email"/></Field><Field label="كلمة المرور"><Input name="password" type="password" minLength={8} required autoComplete={signup?"new-password":"current-password"}/></Field><Button className="submit" disabled={busy} type="submit"><LogIn/>{busy?"جاري التحقق…":signup?"إنشاء الحساب":"تسجيل الدخول"}</Button></form><button className="mode-link" onClick={()=>{setSignup(!signup);setNotice("")}}>{signup?"لديك حساب؟ سجّل الدخول":"أول مرة؟ أنشئ حسابك"}</button></section></main>;
+  return <main className="access-page auth-bg"><section className="access-card login-card"><div className="brand-mark login-mark">م</div><h1>مجموعة المحيميد القابضة</h1><p>سجّل الدخول للوصول إلى نظام الموظفين.</p>{notice&&<div className="notice">{notice}</div>}<form onSubmit={submit}><Field label="البريد الإلكتروني"><Input name="email" type="email" required autoComplete="email"/></Field><Field label="كلمة المرور"><Input name="password" type="password" minLength={8} required autoComplete="current-password"/></Field><Button className="submit" disabled={busy} type="submit"><LogIn/>{busy?"جاري التحقق…":"تسجيل الدخول"}</Button></form><small>الحسابات تُنشأ من إدارة النظام فقط.</small></section></main>;
 }
 
 function StatusCard({title,text,spin,action}:{title:string;text:string;spin?:boolean;action?:ReactNode}){return <main className="access-page"><section className="access-card"><UserRound className={spin?"spin":""}/><h1>{title}</h1><p>{text}</p>{action}</section></main>}
