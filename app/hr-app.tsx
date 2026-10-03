@@ -3,7 +3,7 @@
 import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { Building2, CalendarDays, Clock3, LogIn, LogOut, Plus, RefreshCw, Settings, ShieldCheck, Trash2, UserRound, UsersRound } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase-browser";
+import { supabase, isSupabaseConfigured, authLinkType, authLinkError } from "@/lib/supabase-browser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
@@ -35,6 +35,8 @@ export default function HRApp(){
   const [profile,setProfile]=useState<Profile|null>(null);
   const [loading,setLoading]=useState(true);
   const [message,setMessage]=useState("");
+  const [settingPassword,setSettingPassword]=useState(false);
+  const [authNotice,setAuthNotice]=useState("");
 
   const resolveProfile=useCallback(async(current:Session|null)=>{
     setSession(current); setMessage("");
@@ -46,28 +48,89 @@ export default function HRApp(){
 
   useEffect(()=>{
     if(!isSupabaseConfigured){ setLoading(false); return; }
-    void supabase.auth.getSession().then(({data})=>resolveProfile(data.session));
-    const {data}=supabase.auth.onAuthStateChange((_event,next)=>{ void resolveProfile(next); });
-    return()=>data.subscription.unsubscribe();
+    let active=true;
+    const linkParams=new URLSearchParams(window.location.hash.slice(1));
+    const queryParams=new URLSearchParams(window.location.search);
+    const linkFailed=authLinkError||linkParams.has("error")||queryParams.has("error");
+    const passwordLink=authLinkType==="invite"||authLinkType==="recovery"||queryParams.get("mode")==="set-password";
+    if(linkFailed){
+      setAuthNotice("رابط الإيميل غير صالح أو انتهت صلاحيته. اضغط «تعيين أو استعادة كلمة المرور» لطلب رابط جديد.");
+      sessionStorage.removeItem("hr-password-pending");
+      window.history.replaceState(null,"",window.location.pathname);
+    }else if(passwordLink){
+      sessionStorage.setItem("hr-password-pending","true");
+      setSettingPassword(true);
+    }else{
+      setSettingPassword(sessionStorage.getItem("hr-password-pending")==="true");
+    }
+    // Auth callbacks must return before making another Supabase request.
+    const {data}=supabase.auth.onAuthStateChange((event,next)=>{
+      if(event==="PASSWORD_RECOVERY"){
+        sessionStorage.setItem("hr-password-pending","true");
+        setSettingPassword(true);
+      }
+      setTimeout(()=>{if(active) void resolveProfile(next)},0);
+    });
+    void supabase.auth.getSession().then(({data,error})=>{
+      if(!active)return;
+      if(error||(!data.session&&passwordLink&&!linkFailed)){
+        setAuthNotice("تعذر تفعيل الرابط. اطلب رابطًا جديدًا من «تعيين أو استعادة كلمة المرور».");
+        setSettingPassword(false);
+        sessionStorage.removeItem("hr-password-pending");
+      }
+      void resolveProfile(data.session);
+    });
+    return()=>{active=false;data.subscription.unsubscribe()};
   },[resolveProfile]);
 
   if(!isSupabaseConfigured) return <StatusCard title="الموقع بانتظار الربط" text="لم تُضف إعدادات قاعدة البيانات إلى الاستضافة بعد."/>;
   if(loading) return <StatusCard title="جاري تحميل النظام…" text="لحظات ونجهز بيانات حسابك." spin/>;
-  if(!session) return <AuthScreen/>;
+  if(!session) return <AuthScreen initialNotice={authNotice}/>;
+  if(settingPassword) return <SetPasswordScreen onComplete={()=>{
+    sessionStorage.removeItem("hr-password-pending");
+    window.history.replaceState(null,"",window.location.pathname);
+    setSettingPassword(false);
+    void resolveProfile(session);
+  }}/>;
   if(!profile) return <StatusCard title="الحساب غير مرتبط بالنظام" text="أضف بريدك في بيانات الموظف أو قائمة المدراء، ثم سجّل الدخول من جديد." action={<Button onClick={()=>supabase.auth.signOut()}>الدخول بحساب آخر</Button>}/>;
   if(profile.role==="admin") return <AdminDashboard profile={profile}/>;
   return <EmployeeDashboard profile={profile}/>;
 }
 
-function AuthScreen(){
-  const [busy,setBusy]=useState(false); const [notice,setNotice]=useState("");
+function AuthScreen({initialNotice=""}:{initialNotice?:string}){
+  const [busy,setBusy]=useState(false); const [notice,setNotice]=useState(initialNotice);
+  const [recovering,setRecovering]=useState(false);
   async function submit(e:FormEvent<HTMLFormElement>){
     e.preventDefault(); setBusy(true); setNotice(""); const d=new FormData(e.currentTarget); const email=String(d.get("email")||"").trim(); const password=String(d.get("password")||"");
-    const result=await supabase.auth.signInWithPassword({email,password});
-    if(result.error) setNotice("تعذر تسجيل الدخول. تأكد من البريد وكلمة المرور أو تواصل مع مدير النظام.");
-    setBusy(false);
+    try{
+      if(recovering){
+        const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:`${window.location.origin}/?mode=set-password`});
+        setNotice(error?"تعذر إرسال الرابط الآن. حاول لاحقًا أو تواصل مع مدير النظام.":"إذا كان البريد مرتبطًا بحساب، سيصلك رابط تعيين كلمة المرور. افتح أحدث رسالة واستخدم الرابط مرة واحدة.");
+      }else{
+        const result=await supabase.auth.signInWithPassword({email,password});
+        if(result.error) setNotice("تعذر تسجيل الدخول. تأكد من البريد وكلمة المرور أو تواصل مع مدير النظام.");
+      }
+    }catch{setNotice("تعذر الاتصال. تحقق من الإنترنت وحاول مرة أخرى.")}
+    finally{setBusy(false)}
   }
-  return <main className="access-page auth-bg"><section className="access-card login-card"><div className="brand-mark login-mark">م</div><h1>مجموعة المحيميد القابضة</h1><p>سجّل الدخول للوصول إلى نظام الموظفين.</p>{notice&&<div className="notice">{notice}</div>}<form onSubmit={submit}><Field label="البريد الإلكتروني"><Input name="email" type="email" required autoComplete="email"/></Field><Field label="كلمة المرور"><Input name="password" type="password" minLength={8} required autoComplete="current-password"/></Field><Button className="submit" disabled={busy} type="submit"><LogIn/>{busy?"جاري التحقق…":"تسجيل الدخول"}</Button></form><small>الحسابات تُنشأ من إدارة النظام فقط.</small></section></main>;
+  return <main className="access-page auth-bg"><section className="access-card login-card"><div className="brand-mark login-mark">م</div><h1>مجموعة المحيميد القابضة</h1><p>{recovering?"أدخل بريد حسابك ليصلك رابط تعيين كلمة المرور.":"سجّل الدخول للوصول إلى نظام الموظفين."}</p>{notice&&<div className="notice" role="status">{notice}</div>}<form onSubmit={submit}><Field label="البريد الإلكتروني"><Input name="email" type="email" required autoComplete="email"/></Field>{!recovering&&<Field label="كلمة المرور"><Input name="password" type="password" minLength={8} required autoComplete="current-password"/></Field>}<Button className="submit" disabled={busy} type="submit"><LogIn/>{busy?"جاري التحقق…":recovering?"إرسال رابط تعيين كلمة المرور":"تسجيل الدخول"}</Button></form><Button type="button" variant="ghost" disabled={busy} onClick={()=>{setRecovering(!recovering);setNotice("")}}>{recovering?"العودة لتسجيل الدخول":"تعيين أو استعادة كلمة المرور"}</Button><small>الحسابات تُنشأ من إدارة النظام فقط.</small></section></main>;
+}
+
+function SetPasswordScreen({onComplete}:{onComplete:()=>void}){
+  const [busy,setBusy]=useState(false);const [notice,setNotice]=useState("");
+  async function submit(e:FormEvent<HTMLFormElement>){
+    e.preventDefault();const form=new FormData(e.currentTarget),password=String(form.get("password")||"");
+    if(password.length<8){setNotice("استخدم كلمة مرور من 8 أحرف على الأقل.");return;}
+    if(password!==form.get("confirmPassword")){setNotice("كلمتا المرور غير متطابقتين.");return;}
+    setBusy(true);setNotice("");
+    try{
+      const {error}=await supabase.auth.updateUser({password});
+      if(error){setNotice("تعذر حفظ كلمة المرور. قد يكون الرابط انتهى؛ اطلب رابطًا جديدًا أو جرّب كلمة مرور أقوى.");return;}
+      onComplete();
+    }catch{setNotice("تعذر الاتصال. حاول مرة أخرى.")}
+    finally{setBusy(false)}
+  }
+  return <main className="access-page auth-bg"><section className="access-card login-card"><div className="brand-mark login-mark">م</div><h1>تعيين كلمة المرور</h1><p>اختر كلمة مرور لحسابك في نظام مجموعة المحيميد القابضة.</p>{notice&&<div className="notice" role="status">{notice}</div>}<form onSubmit={submit}><Field label="كلمة المرور الجديدة"><Input name="password" type="password" required minLength={8} autoComplete="new-password"/></Field><Field label="تأكيد كلمة المرور"><Input name="confirmPassword" type="password" required minLength={8} autoComplete="new-password"/></Field><Button className="submit" disabled={busy} type="submit">{busy?"جاري الحفظ…":"حفظ كلمة المرور والدخول"}</Button></form><Button type="button" variant="ghost" disabled={busy} onClick={()=>{sessionStorage.removeItem("hr-password-pending");window.history.replaceState(null,"",window.location.pathname);void supabase.auth.signOut()}}>العودة لتسجيل الدخول</Button></section></main>;
 }
 
 function StatusCard({title,text,spin,action}:{title:string;text:string;spin?:boolean;action?:ReactNode}){return <main className="access-page"><section className="access-card"><UserRound className={spin?"spin":""}/><h1>{title}</h1><p>{text}</p>{action}</section></main>}
